@@ -1,0 +1,347 @@
+/*
+     Name: Carve for CCM_RecentlyUsedApps
+ Verision: 0.1
+   Author: James Habben
+
+*/
+class CcmRuaClass : NameListClass {
+  enum RecordTypes {
+    WINXP,
+    WIN7
+  }
+  String       CsvFilePath;
+  FileClass    CsvFile;
+
+  String       EvFileName;
+  String       EntryPath;
+  ulong        FileOffset;
+  RecordTypes  RecordType;
+  DateClass    Filetime1;
+  DateClass    Filetime2;
+  ulong        RecordSize;
+  uint         Filesize;
+  uint         ProductLanguage;
+  uint         LaunchCount;
+  String       AdditionalProductCodes;
+  String       CompanyName;
+  String       ExplorerFilename;
+  String       FileDescription;
+  String       FilePropertiesHash;
+  String       FileVersion;
+  String       FolderPath;
+  String       LastUsedTime;
+  String       LastUsername;
+  String       MsiDisplayName;
+  String       MsiPublisher;
+  String       MsiVersion;
+  String       OriginalFilename;
+  String       ProductCode;
+  String       ProductName;
+  String       ProductVersion;
+  String       SoftwarePropertiesHash;
+
+  CcmRuaClass (CcmRuaClass parent = null) :
+    super(parent, "", 0)
+  {
+  }
+
+  void SetCsvFile (const String &filePath) {
+    CsvFilePath = filePath;
+    LocalFileClass lf();
+    if (lf.Open(CsvFilePath, WRITETEXTCRLF)) {
+      lf.SetCodePage(CodePageClass::UTF8);
+      CsvFile = lf;
+      CsvFile.WriteLine("sep=\t");
+      CsvFile.WriteLine("EvFileName\tEntryPath\tFileOffset\tRecordType\tFiletime1\tFiletime2\tFilesize\tProductLanguage\tLaunchCount\tAdditionalProductCodes\t"
+                        "CompanyName\tExplorerFilename\tFileDescription\tFilePropertiesHash\tFileVersion\tFolderPath\tLastUsedTime\tLastUsername\t"
+                        "MsiDisplayName\tMsiPublisher\tMsiVersion\tOriginalFilename\tProductCode\tProductName\tProductVersion\tSoftwarePropertiesHash");
+      CsvFile.Flush();
+    }
+    else {
+      Console.WriteLine(SystemClass::LastError());
+    }
+  }
+
+  void WriteToCsv () {
+    foreach (CcmRuaClass rua in this) {
+      CsvFile.Write("{0}\t{1}\t{2}\t", rua.EvFileName, rua.EntryPath, rua.FileOffset);
+      CsvFile.Write("{0}\t{1}\t{2}\t", rua.RecordType, rua.Filetime1.GetString(SHOWTIME), rua.Filetime2.GetString(SHOWTIME));
+      CsvFile.Write("{0}\t{1}\t{2}\t", rua.Filesize, rua.ProductLanguage, rua.LaunchCount);
+      CsvFile.Write("{0}\t{1}\t{2}\t", rua.AdditionalProductCodes, rua.CompanyName, rua.ExplorerFilename);
+      CsvFile.Write("{0}\t{1}\t{2}\t", rua.FileDescription, rua.FilePropertiesHash, rua.FileVersion);
+      CsvFile.Write("{0}\t{1}\t{2}\t", rua.FolderPath, rua.LastUsedTime, rua.LastUsername);
+      CsvFile.Write("{0}\t{1}\t{2}\t", rua.MsiDisplayName, rua.MsiPublisher, rua.MsiVersion);
+      CsvFile.Write("{0}\t{1}\t{2}\t", rua.OriginalFilename, rua.ProductCode, rua.ProductName);
+      CsvFile.WriteLine("{0}\t{1}", rua.ProductVersion, rua.SoftwarePropertiesHash);
+      this.Remove(rua);
+    }
+    CsvFile.Flush();
+  }
+
+
+  void Parse(EntryClass entry, FileClass infile, long offset = -1) {
+    if (offset >= 0) {
+      infile.Seek(offset);
+    }
+    CcmRuaClass newRec(this); //EnCase memory overload when storing as children
+    newRec.FileOffset = infile.GetPos();
+    MemoryFileClass file();
+    file.Open(2048, WRITE);
+    file.WriteBuffer(infile, 2048);
+    file.Seek(0);
+    newRec.EntryPath = entry.ItemPath();
+    newRec.EvFileName = entry.GetDevice().FilePath().GetFilename();
+    char ch;
+    file.ReadBinary(ch);
+    if (ch == '7') {
+      newRec.RecordType = WIN7;
+      file.Seek(128);
+    }
+    else if (ch == '6') {
+      newRec.RecordType = WINXP;
+      file.Seek(64);
+    }
+    else {
+      return;
+    }
+    file.ReadWinDate(newRec.Filetime1);
+    file.ReadWinDate(newRec.Filetime2);
+    file.ReadBinary(newRec.RecordSize);
+    file.Skip(26);
+    file.ReadBinary(newRec.Filesize);
+    file.Skip(12);
+    file.ReadBinary(newRec.ProductLanguage);
+    file.Skip(4);
+    file.ReadBinary(newRec.LaunchCount);
+    file.Skip(42);
+    file.Skip(22); //CCM_RecentlyUsedApps 0x00 0x00
+    file.SetCodePage(CodePageClass::UTF8);
+    file.ReadString(newRec.AdditionalProductCodes);
+    file.Skip(1);
+    file.ReadString(newRec.CompanyName);
+    file.Skip(1);
+    file.ReadString(newRec.ExplorerFilename);
+    file.Skip(1);
+    file.ReadString(newRec.FileDescription);
+    file.Skip(1);
+    file.ReadString(newRec.FilePropertiesHash);
+    file.Skip(1);
+    file.ReadString(newRec.FileVersion);
+    file.Skip(1);
+    file.ReadString(newRec.FolderPath);
+    file.Skip(1);
+    file.ReadString(newRec.LastUsedTime);
+    file.Skip(1);
+    file.ReadString(newRec.LastUsername);
+    file.Skip(1);
+    file.ReadString(newRec.MsiDisplayName);
+    file.Skip(1);
+    file.ReadString(newRec.MsiPublisher);
+    file.Skip(1);
+    file.ReadString(newRec.MsiVersion);
+    file.Skip(1);
+    file.ReadString(newRec.OriginalFilename);
+    file.Skip(1);
+    file.ReadString(newRec.ProductCode);
+    file.Skip(1);
+    file.ReadString(newRec.ProductName);
+    file.Skip(1);
+    file.ReadString(newRec.ProductVersion);
+    file.Skip(1);
+    file.ReadString(newRec.SoftwarePropertiesHash);
+
+    newRec.SetName(newRec.ExplorerFilename + " | " + newRec.LastUsedTime);
+
+    if (this.Count() >= 1) {
+      WriteToCsv();
+    }
+
+    return;
+  }
+
+}
+
+class MainClass;
+class MainDialogClass : DialogClass {
+  MainClass         M;
+  CaseClass         C;
+  ButtonClass       Btn_Help;
+  EnumEditClass     Enm_IterMode;
+  RadioButtonClass  Rdo_Filter;
+  PathEditClass     Pth_ExportFolder;
+  StringEditClass   Str_ResultSetName;
+  CheckBoxClass     Chk_OpenFile;
+
+  MainDialogClass(MainClass m, CaseClass c) :
+    super(null, m.ScriptName),
+    M = m,
+    C = c,
+    Btn_Help(this, "Help", START, START, DEFAULT, DEFAULT, 0),
+    Enm_IterMode(this, "Iteration mode", START, NEXT, DEFAULT, DEFAULT, 0, M.IterMode, 0),
+    Rdo_Filter(this, "Search only 'OBJECTS.DATA' and 'INDEX.BTR' files", START, NEXT, DEFAULT, DEFAULT, 0, M.DoFilter,
+               "No Filter\tSearch only 'OBJECTS.DATA' and 'INDEX.BTR' files\tSearch only 'OBJECTS.DATA', 'INDEX.BTR', and 'pagefile.sys' files"),
+    Pth_ExportFolder(this, Lang::T6175, START, NEXT, 300, DEFAULT, 0, M.ExportFolder, FILECREATE),
+    Str_ResultSetName(this, "Result-set name", START, NEXT, 300, DEFAULT, 0, M.ResultSetName, -1, REQUIRED),
+    Chk_OpenFile (this, "Open output folder when finished", START, NEXT, DEFAULT, DEFAULT, 0, M.DoFileOpen)
+  {
+
+  }
+
+  virtual void ChildEvent(const WindowClass::EventClass &event)
+  {
+    if (Btn_Help.Matches(event))
+    {
+      SystemClass::Message(SystemClass::ICONINFORMATION, M.ScriptName, M.HelpText);
+    }
+    super::ChildEvent(event);
+  }
+
+  virtual bool CanClose()
+  {
+    bool retval = DialogClass::CanClose();
+    if (retval)
+    {
+      if (C.ResultsRoot().Find(Str_ResultSetName.GetText()))
+      {
+        retval = (SystemClass::Message(SystemClass::ICONEXCLAMATION | SystemClass::MBYESNO,
+                                       M.ScriptName,
+                                       "A result-set with that name already exists.\n\nContinue?") == SystemClass::YES);
+      }
+    }
+    return retval;
+  }
+}
+
+class MainClass {
+
+  String                            ScriptName,
+                                    ExportFolder,
+                                    ResultSetName,
+                                    HelpText;
+  uint                              Index,
+                                    IterOptions;
+  int                               DoFilter;
+  bool                              DoFileOpen;
+  ResultSetClass                    Results;
+  ItemIteratorClass::IterateModes   IterMode;
+  NameListClass                     FilterFileList;
+  SearchClass                       Search;
+  ItemCacheClass                    ItmCa;
+  CcmRuaClass                       RuaList;
+
+  MainClass() :
+    ScriptName("Carve for CCM_RecentlyUsedApps"),
+    HelpText("Some help!"),
+    FilterFileList(),
+    Search(),
+    RuaList()
+  {
+    ResultSetName = String::Format("{0} Results", ScriptName);
+    IterOptions = ItemIteratorClass::NOPROXY | ItemIteratorClass::NORECURSE | ItemIteratorClass::PROMPT;
+    IterMode = ItemIteratorClass::ALL;
+    FilterFileList.Parse("OBJECTS.DATA,INDEX.BTR,pagefile.sys", ",");
+    DoFilter = true;
+    DoFileOpen = true;
+  }
+
+  void Main(CaseClass c) {
+    SystemClass::ClearConsole(1);
+    if (c)
+    {
+      Search.AddKeyword("7C261551B264D35E30A7FA29C75283DAE04BBA71DBE8F5E553F7AD381B406DD8", KeywordClass::UNICODE); //WIN7 Hash
+      Search.AddKeyword("6FA62F462BEF740F820D72D9250D743C", KeywordClass::UNICODE); //WinXP Hash
+      Search.Create();
+      ItmCa = new ItemCacheClass(c);
+      ExportFolder.BuildPath(c.ExportFolder(), "CCM_RecentlyUsedApps-parsed", "csv");
+      MainDialogClass md(this, c);
+      if (md.Execute() == SystemClass::OK) {
+        RuaList.SetCsvFile(ExportFolder);
+        Results = new ResultSetClass();
+        if (Results.Open(c.TemporaryFolder()))
+        {
+          if (DoFilter == 1) {
+            FilterFileList.Remove(FilterFileList.LastChild());
+          }
+          ItemIteratorClass iter(c, IterOptions, IterMode);
+          while (EntryClass e = iter.GetNextEntry())
+          {
+            if ((e.LogicalSize() && !DoFilter) || (DoFilter && FilterFileList.Find(e.Name())))
+            {
+              Process(e);
+            }
+          }
+          /*foreach (ExtensionCounterClass ec in Extensions)
+          {
+            Console.WriteLine("{0} files extracted: {1}", ec.Name(), ec.Counter);
+          }*/
+          RuaList.CsvFile.Close();
+          Results.AddToCase(c, ResultSetName);
+          if (DoFileOpen) {
+            SystemClass::BrowsePath(ExportFolder.GetFilePath());
+          }
+        }
+      }
+    }
+  }
+
+  void Process(EntryClass e) {
+    Console.WriteLine("Searching '{0}'.", e.ItemPath());
+    //ItemCacheClass cache(e.GetCase());
+    //FileClass file = cache.GetRawFile(e);
+    EntryFileClass file();
+    file.Open(e);
+    SystemClass::StatusRange("Searching '" + e.Name() + "' | " + ScriptName, file.GetSize());
+    if (Search.Find(file, -1, -1, STATUSUPDATE)) {
+      //file.Close();
+      Console.WriteLine("  {0} hits", Search.GetHits().Count());
+      SystemClass::StatusRange("Parsing '" + e.Name() + "' | " + ScriptName, Search.GetHits().Count());
+      foreach (SearchClass::HitClass h in Search.GetHits()) {
+        //EntryFileClass file2();
+        //file2.Open(e);
+        RuaList.Parse(e, file, h.Offset());
+        //Console.WriteLine(RuaList.LastChild().Name());
+        //RuaList.Remove(RuaList.LastChild());
+        SystemClass::StatusInc();
+      }
+      ResultSetClass::DataClass d();
+      ResultClass r();
+      r.CopyItemData(e);
+      r.SetComment(Search.GetHits().Count() + " hits");
+      d.Item = r;
+      if (Results.Add(d))
+      {
+        Results.Flush();
+      }
+    }
+    else {
+      Console.WriteLine("  0 hits");
+    }
+    //file.Close();
+    Console.WriteLine("  done parsing");
+    /*String outputFolder = String::Format("{0}\\{1} Files", ExportFolder, extension);
+    if (LocalMachine.PathExists(outputFolder) || LocalMachine.CreateFolder(outputFolder))
+    {
+      String outputPath = String::Format("{0}\\{1} - {2}", outputFolder, String::FormatInt(Index++, int::DECIMAL, 0, 6), e.Name());
+      EntryFileClass input();
+      if (input.Open(e))
+      {
+        LocalFileClass output();
+        if (output.Open(outputPath, FileClass::WRITE))
+        {
+          output.WriteBuffer(input);
+          //UpdateCount(e);
+          ResultSetClass::DataClass d();
+          ResultClass r();
+          r.CopyItemData(e);
+          r.SetComment(outputPath);
+          d.Item = r;
+          if (Results.Add(d))
+          {
+            Results.Flush();
+          }
+        }
+      }
+    }*/
+  }
+
+}
