@@ -1,6 +1,6 @@
 /*
      Name: Carve for CCM_RecentlyUsedApps
- Verision: 0.1
+ Verision: 0.2
    Author: James Habben
 
 */
@@ -78,6 +78,16 @@ class CcmRuaClass : NameListClass {
     CsvFile.Flush();
   }
 
+  void ReadByteSetCodepage(FileClass &file) {
+    byte b;
+    file.ReadBinary(b);
+    if (b == 1) {
+      file.SetCodePage(CodePageClass::UNICODE);
+    }
+    else {
+      file.SetCodePage(CodePageClass::UTF8);
+    }
+  }
 
   void Parse(EntryClass entry, FileClass infile, long offset = -1) {
     if (offset >= 0) {
@@ -114,40 +124,40 @@ class CcmRuaClass : NameListClass {
     file.Skip(4);
     file.ReadBinary(newRec.LaunchCount);
     file.Skip(42);
-    file.Skip(22); //CCM_RecentlyUsedApps 0x00 0x00
-    file.SetCodePage(CodePageClass::UTF8);
+    file.Skip(21); //CCM_RecentlyUsedApps 0x00
+    ReadByteSetCodepage(file);
     file.ReadString(newRec.AdditionalProductCodes);
-    file.Skip(1);
+    ReadByteSetCodepage(file);
     file.ReadString(newRec.CompanyName);
-    file.Skip(1);
+    ReadByteSetCodepage(file);
     file.ReadString(newRec.ExplorerFilename);
-    file.Skip(1);
+    ReadByteSetCodepage(file);
     file.ReadString(newRec.FileDescription);
-    file.Skip(1);
+    ReadByteSetCodepage(file);
     file.ReadString(newRec.FilePropertiesHash);
-    file.Skip(1);
+    ReadByteSetCodepage(file);
     file.ReadString(newRec.FileVersion);
-    file.Skip(1);
+    ReadByteSetCodepage(file);
     file.ReadString(newRec.FolderPath);
-    file.Skip(1);
+    ReadByteSetCodepage(file);
     file.ReadString(newRec.LastUsedTime);
-    file.Skip(1);
+    ReadByteSetCodepage(file);
     file.ReadString(newRec.LastUsername);
-    file.Skip(1);
+    ReadByteSetCodepage(file);
     file.ReadString(newRec.MsiDisplayName);
-    file.Skip(1);
+    ReadByteSetCodepage(file);
     file.ReadString(newRec.MsiPublisher);
-    file.Skip(1);
+    ReadByteSetCodepage(file);
     file.ReadString(newRec.MsiVersion);
-    file.Skip(1);
+    ReadByteSetCodepage(file);
     file.ReadString(newRec.OriginalFilename);
-    file.Skip(1);
+    ReadByteSetCodepage(file);
     file.ReadString(newRec.ProductCode);
-    file.Skip(1);
+    ReadByteSetCodepage(file);
     file.ReadString(newRec.ProductName);
-    file.Skip(1);
+    ReadByteSetCodepage(file);
     file.ReadString(newRec.ProductVersion);
-    file.Skip(1);
+    ReadByteSetCodepage(file);
     file.ReadString(newRec.SoftwarePropertiesHash);
 
     newRec.SetName(newRec.ExplorerFilename + " | " + newRec.LastUsedTime);
