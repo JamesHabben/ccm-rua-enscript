@@ -46,7 +46,7 @@ class CcmRua:
         if offset != -1:
             file.seek(offset)
         bytes = struct.unpack_from('<Q', file.read(8))[0]
-        microseconds = bytes / 10 #int(bytes, 16) / 10
+        microseconds = bytes / 10
         seconds, microseconds = divmod(microseconds, 1000000)
         days, seconds = divmod(seconds, 86400)
         return format(datetime(1601, 1, 1) + timedelta(days, seconds, microseconds), '%Y-%m-%d %H:%M:%S -0')
@@ -146,8 +146,13 @@ def main():
         text = file.read()
         hitcount = 0
         hits = re.finditer(CcmRua.ccmrua_w7_hash, text)
-        #hits += re.finditer(CcmRua.ccmrua_xp_hash, text)
         recordlist = []
+        for hit in hits:
+            record = CcmRua()
+            record.ParseRecord(file, hit.start(), args.input)
+            recordlist.append(record)
+            hitcount += 1
+        hits += re.finditer(CcmRua.ccmrua_xp_hash, text)
         for hit in hits:
             record = CcmRua()
             record.ParseRecord(file, hit.start(), args.input)
