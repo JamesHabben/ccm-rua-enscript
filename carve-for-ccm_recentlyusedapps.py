@@ -142,8 +142,6 @@ def main():
         sys.exit(1)
     args = parser.parse_args()
 
-    #searchfilepath = '/Users/jameshabben/Documents/VzCases/Jefferies/cim/OBJECTS.DATA'
-
     with open(args.input, 'rb') as file:
         text = file.read()
         hitcount = 0
