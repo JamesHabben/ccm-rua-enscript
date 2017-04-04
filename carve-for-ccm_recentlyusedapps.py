@@ -145,8 +145,6 @@ def main():
     with open(args.input, 'rb') as file:
         text = file.read()
         hitcount = 0
-        #hits = re.findall('RecentlyUsedApps', text)
-        #hits = re.findall(CCM_RUA_GUID_VISTA_UTF16, text)
         hits = re.finditer(CcmRua.ccmrua_w7_hash, text)
         #hits += re.finditer(CcmRua.ccmrua_xp_hash, text)
         recordlist = []
@@ -155,7 +153,6 @@ def main():
             record.ParseRecord(file, hit.start(), args.input)
             recordlist.append(record)
             hitcount += 1
-        #print 'hits: {}'.format(len(hits))
 
         csvOutput(recordlist, args.csv)
 
