@@ -211,7 +211,8 @@ def read_cim_encoded_string(buf, start, end, fullpath=None, file_offset=None):
     When the string is compressed, Encoded-String-Flag is set to 0x00. This is distinct from UTF-8,
     which might contain multiple-byte encodings for single characters.
     """
-    if end - start == 1:
+    # Record length 2 only happens when you have a flag and null byte, no point in processing
+    if end - start == 2:
         return None
     if start > len(buf):
         return None
@@ -222,9 +223,9 @@ def read_cim_encoded_string(buf, start, end, fullpath=None, file_offset=None):
         return None
     uncompressed = uncompressed_raw == b'\x01'
     next_byte = buf[start + 1:start + 2]
-    if next_byte == b'\x00' or b'':
+    if next_byte == b'':
         return None
-    return decode_cim_encoded_string(buf[start + 1:end + 1], 0, uncompressed, fullpath, file_offset)
+    return decode_cim_encoded_string(buf[start + 1:end], 0, uncompressed, fullpath, file_offset)
 
 
 def get_prop_offsets(fileobj, record, fullpath, hash_start):
@@ -247,6 +248,7 @@ def parse_fields(record):
     file_name = record.get('explorer_filename', '') or ''
     record['full_path'] = ''.join([folder_path, '' if folder_path.endswith('\\') else '\\', file_name]) or None
     record['file_extension'] = os.path.splitext(file_name)[1].replace('.', '').lower() or None
+    return record
 
 
 def process_hit(fileobj, match, fullpath):
@@ -281,10 +283,10 @@ def process_hit(fileobj, match, fullpath):
     sorted_offsets = sorted(offsets.items(), key=lambda kv: kv[1])
     s_o_len = len(sorted_offsets)
     for idx, (prop_name, field_offset) in enumerate(sorted_offsets):
-        field_end = sorted_offsets[idx + 1][1] - 1 if (idx + 1 < s_o_len) else properties_size
+        field_end = sorted_offsets[idx + 1][1] if (idx + 1 < s_o_len) else properties_size
         record[prop_name] = read_cim_encoded_string(properties_data, field_offset, field_end, fullpath, hash_start)
 
-    parse_fields(record)
+    record = parse_fields(record)
     return record
 
 
